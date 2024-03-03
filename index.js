@@ -101,6 +101,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/list', (req, res) => {
+  try {
+    let videos = await readData('videos');
+    res.type('json').send(JSON.stringify(videos, null, 2) + '\n');
+  } catch (err) {
+    res.status(400).send({ error: "Failed to get videos" })
+  }
+})
+
 app.get('/api', (req, res) => {
   res.send("Shoti API > See documentation at https://shoti-api.vercel.app")
 })

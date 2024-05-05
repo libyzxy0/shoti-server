@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const tikwm = require('./tikwm');
+const tikwm = require('./tikvid');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
-const client = new MongoClient(process.env.MONGO_URI);
+const client = new MongoClient("mongodb+srv://libyzxy0:j8AiCpwIzMCRQbEO@cluster0.cv6ndw3.mongodb.net/?retryWrites=true&w=majority");
 
 const sub = "";
 const databaseName = "Shoti";
@@ -310,22 +310,19 @@ async function generateVideo(userRank) {
   const videoId = randomVideo.url;
   try {
     const videoInfo = await tikwm.getVideoInfo(videoId);
-    
+    console.log(videoInfo)
     return {
       code: videoInfo ? 200 : 400,
       message: videoInfo ? 'success' : 'error',
-      errID: 'No value', 
       data: {
         _shoti_rank: userRank,
-        region: "No value",
         url: videoInfo && videoInfo.url,
         cover: videoInfo && videoInfo.poster,
-        title: "No value",
-        duration: "No value",
+        title: null,
         user: {
-          username: "No value",
-          nickname: "No value",
-          userID: "No Value"
+          username: videoInfo.username,
+          nickname: null,
+          userID: null
         },
       },
     };

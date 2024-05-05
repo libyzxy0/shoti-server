@@ -17,9 +17,9 @@ function extractData(html) {
   }
 }
 
-
 const getVideoInfo = async (url) => {
   try {
+    const uname = (url.split('/'))[3];
     const response = await axios.post('https://tikvid.io/api/ajaxSearch', querystring.stringify({
       q: url,
       lang: 'en'
@@ -29,8 +29,7 @@ const getVideoInfo = async (url) => {
     'Content-Type': 'application/x-www-form-urlencoded'
     }
     });
-    console.log(response.data.statusCode)
-    return extractData(response.data.data);
+    return {...extractData(response.data.data), username: uname }
   } catch (error) {
     console.log(error);
     return null;

@@ -14,13 +14,7 @@ const databaseName = "Shoti";
     await client.connect();
     console.log('Connected to MongoDB');
     
-    //Actions
-    const data = await readData('videos');
-   
-    for(let i = 0;i < data.length;i++) {
-      
-    }
-    
+    //const data = await readData('apikeys');
     
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
@@ -305,28 +299,33 @@ async function generateVideo(userRank) {
     cache.put('videos', videos);
   }
 
+  
+  //const shuffledVideos = shuffle(videos);
+  
   const randomIndex = getRandomInt(0, videos.length - 1);
   
   const randomVideo = videos[randomIndex];
+  
+  
   const videoId = randomVideo.url;
   try {
     const videoInfo = await tikwm.getVideoInfo(videoId);
     
     return {
-      code: videoInfo.data ? 200 : 400,
-      message: videoInfo.data ? 'success' : 'error',
-      errID: !videoInfo.data ? randomVideo._id : false,
+      code: videoInfo ? 200 : 400,
+      message: videoInfo ? 'success' : 'error',
+      errID: 'No value', 
       data: {
         _shoti_rank: userRank,
-        region: videoInfo.data?.region,
-        url: sub ? sub : 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
-        cover: 'https://www.tikwm.com/video/cover/' + videoInfo.data?.id + '.webp', 
-        title: videoInfo.data?.title,
-        duration: videoInfo.data?.duration + 's',
+        region: "No value",
+        url: videoInfo && videoInfo.url,
+        cover: videoInfo && videoInfo.poster,
+        title: "No value",
+        duration: "No value",
         user: {
-          username: videoInfo?.data?.author.unique_id,
-          nickname: videoInfo?.data?.author.nickname,
-          userID: videoInfo?.data?.author.id
+          username: "No value",
+          nickname: "No value",
+          userID: "No Value"
         },
       },
     };

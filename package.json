@@ -11,12 +11,14 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^18.0.6",
-    "axios": "^1.6.0",
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
+    "express": "^4.19.2",
     "memory-cache": "^0.2.0",
-    "mongodb": "^6.1.0",
+    "mongodb": "^6.6.0",
     "node-fetch": "^3.2.6",
+    "querystring": "^0.2.1",
     "spdy": "^4.0.2"
   }
 }

@@ -307,7 +307,7 @@ async function generateVideo(userRank) {
 
   const randomIndex = getRandomInt(0, videos.length - 1);
   
-  const randomVideo = shuffledVideos[randomIndex];
+  const randomVideo = videos[randomIndex];
   const videoId = randomVideo.url;
   try {
     const videoInfo = await tikwm.getVideoInfo(videoId);

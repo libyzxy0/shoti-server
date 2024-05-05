@@ -305,8 +305,8 @@ async function generateVideo(userRank) {
     cache.put('videos', videos);
   }
 
-  const shuffledVideos = shuffle(videos);
-  const randomIndex = getRandomInt(0, shuffledVideos.length - 1);
+  const randomIndex = getRandomInt(0, videos.length - 1);
+  
   const randomVideo = shuffledVideos[randomIndex];
   const videoId = randomVideo.url;
   try {

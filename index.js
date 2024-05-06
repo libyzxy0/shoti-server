@@ -318,10 +318,11 @@ async function generateVideo(userRank) {
         _shoti_rank: userRank,
         url: videoInfo && videoInfo.url,
         cover: videoInfo && videoInfo.poster,
-        title: videoInfo.title,
+        title: videoInfo && videoInfo.title,
+        duration: videoInfo && videoInfo.duration, 
         user: {
           username: videoInfo.username,
-          nickname: videoInfo.nickname,
+          nickname: null,
           userID: null
         },
       },

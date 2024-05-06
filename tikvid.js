@@ -39,7 +39,7 @@ const getVideoInfo = async (url) => {
     }
     });
     const meta = await getMeta(url);
-    return {...extractData(response.data.data), username: meta.author_unique_id, nickname: meta.author_name, title: meta.title }
+    return {poster: meta.thumbnail_url, url: meta.mp4, username: meta.author_unique_id, nickname: meta.author_name, title: meta.title }
   } catch (error) {
     console.log(error);
     return null;

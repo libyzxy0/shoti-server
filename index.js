@@ -4,7 +4,7 @@ const app = express();
 const tikwm = require('./tikvid');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
-const client = new MongoClient("mongodb+srv://libyzxy0:j8AiCpwIzMCRQbEO@cluster0.cv6ndw3.mongodb.net/?retryWrites=true&w=majority");
+const client = new MongoClient(process.env.MONGO_URI);
 
 const sub = "";
 const databaseName = "Shoti";
@@ -318,10 +318,10 @@ async function generateVideo(userRank) {
         _shoti_rank: userRank,
         url: videoInfo && videoInfo.url,
         cover: videoInfo && videoInfo.poster,
-        title: null,
+        title: videoInfo.title,
         user: {
           username: videoInfo.username,
-          nickname: null,
+          nickname: videoInfo.nickname,
           userID: null
         },
       },

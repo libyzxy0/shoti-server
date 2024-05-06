@@ -17,9 +17,18 @@ function extractData(html) {
   }
 }
 
+//Kim API © Credits
+/*
+TEMPORARILY USE TO GET METADATA
+*/
+
+async function getMeta(url) {
+  const response = await axios.get(`https://tiktokmp3mp4-dl.vercel.app/api?url=${url}`);
+  return response.data;
+}
+
 const getVideoInfo = async (url) => {
   try {
-    const uname = (url.split('/'))[3];
     const response = await axios.post('https://tikvid.io/api/ajaxSearch', querystring.stringify({
       q: url,
       lang: 'en'
@@ -29,7 +38,8 @@ const getVideoInfo = async (url) => {
     'Content-Type': 'application/x-www-form-urlencoded'
     }
     });
-    return {...extractData(response.data.data), username: uname }
+    const meta = await getMeta(url);
+    return {...extractData(response.data.data), username: meta.author_unique_id, nickname: meta.author_name, title: meta.title }
   } catch (error) {
     console.log(error);
     return null;

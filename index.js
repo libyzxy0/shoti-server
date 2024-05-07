@@ -4,7 +4,7 @@ const app = express();
 const tikwm = require('./tikvid');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
-const client = new MongoClient("mongodb+srv://libyzxy0:j8AiCpwIzMCRQbEO@cluster0.cv6ndw3.mongodb.net/?retryWrites=true&w=majority");
+const client = new MongoClient(process.env.MONGO_URI);
 
 const sub = "";
 const databaseName = "Shoti";
@@ -18,7 +18,9 @@ const databaseName = "Shoti";
     const data = await readData('videos');
    
     for(let i = 0;i < data.length;i++) {
-      
+      if(data[i]._id == "65f3b442e190c761fb7d4ca9") {
+        
+      }
     }
     
     
@@ -73,8 +75,6 @@ async function deleteData(collection, dataID) {
 
 function shuffle(array) {
   const newArray = array.slice();
-
-  // Randomly choose between Fisher-Yates shuffle and a simple random shuffle
   const useFisherYates = Math.random() < 0.5;
 
   if (useFisherYates) {
@@ -268,7 +268,7 @@ app.post('/api/v1/get', async (req, res) => {
 
     const videoResponse = await generateVideo(userRank);
 
-    if (!videoResponse || videoResponse.code !== 200) {
+    if (!videoResponse &&videoResponse.code !== 200) {
     //  await deleteData('videos', videoResponse.errID).then(r => {
     //    console.error('ErrorVidDel:', r);
     //  })
@@ -287,7 +287,7 @@ app.get('/api/v1/request-f', async (req, res) => {
   let userRank = "ERR_METHOD_NOT_REQUIRE_KEY";
   const videoResponse = await generateVideo(userRank);
 
-    if (!videoResponse || videoResponse.code !== 200) {
+    if (!videoResponse && videoResponse.code !== 200) {
     //  await deleteData('videos', videoResponse.errID).then(r => {
     //   console.error('ErrorVidDel:', r);
     //  })

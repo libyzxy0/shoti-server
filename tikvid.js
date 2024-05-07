@@ -6,6 +6,7 @@ const getVideoInfo = async (url) => {
     return response.data;
   } catch (err) {
     console.log(err);
+    throw new Error("Failed to get videe:", url);
     return null;
   }
 };

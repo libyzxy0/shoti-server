@@ -4,7 +4,7 @@ const app = express();
 const tikwm = require('./tikvid');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
-const client = new MongoClient(process.env.MONGO_URI);
+const client = new MongoClient("mongodb+srv://libyzxy0:j8AiCpwIzMCRQbEO@cluster0.cv6ndw3.mongodb.net/?retryWrites=true&w=majority");
 
 const sub = "";
 const databaseName = "Shoti";

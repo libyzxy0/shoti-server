@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const tikwm = require('./tikvid');
+const tikwm = require('./tikwm');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
 const client = new MongoClient(process.env.MONGO_URI);
@@ -14,7 +14,13 @@ const databaseName = "Shoti";
     await client.connect();
     console.log('Connected to MongoDB');
     
-    //const data = await readData('apikeys');
+    //Actions
+    const data = await readData('videos');
+   
+    for(let i = 0;i < data.length;i++) {
+      
+    }
+    
     
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
@@ -299,31 +305,28 @@ async function generateVideo(userRank) {
     cache.put('videos', videos);
   }
 
-  
-  //const shuffledVideos = shuffle(videos);
-  
   const randomIndex = getRandomInt(0, videos.length - 1);
   
   const randomVideo = videos[randomIndex];
-  
-  
   const videoId = randomVideo.url;
   try {
     const videoInfo = await tikwm.getVideoInfo(videoId);
-    console.log(videoInfo)
+    
     return {
-      code: videoInfo ? 200 : 400,
-      message: videoInfo ? 'success' : 'error',
+      code: videoInfo.data ? 200 : 400,
+      message: videoInfo.data ? 'success' : 'error',
+      errID: !videoInfo.data ? randomVideo._id : false,
       data: {
         _shoti_rank: userRank,
-        url: videoInfo && videoInfo.url,
-        cover: videoInfo && videoInfo.poster,
-        title: videoInfo && videoInfo.title,
-        duration: videoInfo && videoInfo.duration, 
+        region: videoInfo.data?.region,
+        url: sub ? sub : 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
+        cover: 'https://www.tikwm.com/video/cover/' + videoInfo.data?.id + '.webp', 
+        title: videoInfo.data?.title,
+        duration: videoInfo.data?.duration + 's',
         user: {
-          username: videoInfo.username,
-          nickname: null,
-          userID: null
+          username: videoInfo?.data?.author.unique_id,
+          nickname: videoInfo?.data?.author.nickname,
+          userID: videoInfo?.data?.author.id
         },
       },
     };

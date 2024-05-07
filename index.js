@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const tikwm = require('./tikwm');
+const tikwm = require('./tikvid');
 const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
 const client = new MongoClient(process.env.MONGO_URI);

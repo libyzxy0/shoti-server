@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const tikwm = require('./tikvid');
-const cache = require('memory-cache');
 const { MongoClient } = require('mongodb');
 const client = new MongoClient(process.env.MONGO_URI);
 
@@ -17,12 +16,11 @@ const databaseName = "Shoti";
     //Actions
     const data = await readData('videos');
    
-    for(let i = 0;i < data.length;i++) {
+    for(let i = 0; i < data.length; i++) {
       if(data[i]._id == "65f3b442e190c761fb7d4ca9") {
-        
+        // Perform some action here
       }
     }
-    
     
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
@@ -60,17 +58,17 @@ async function updateData(collection, dataID, newData) {
   } catch (error) {
     console.log(error);
   }
-};
+}
 
 async function deleteData(collection, dataID) {
-    try {
-      const database = client.db(databaseName);
-      const col = database.collection(collection);
-      const result = await col.deleteOne({ _id: dataID });
-      return result;
-    } catch (error) {
-      console.log(error);
-    }
+  try {
+    const database = client.db(databaseName);
+    const col = database.collection(collection);
+    const result = await col.deleteOne({ _id: dataID });
+    return result;
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 function shuffle(array) {
@@ -97,6 +95,7 @@ function shuffle(array) {
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -106,13 +105,13 @@ app.get('/list', async (req, res) => {
     let videos = await readData('videos');
     res.type('json').send(JSON.stringify(videos, null, 2) + '\n');
   } catch (err) {
-    res.status(400).send({ error: "Failed to get videos" })
+    res.status(400).send({ error: "Failed to get videos" });
   }
-})
+});
 
 app.get('/api', (req, res) => {
-  res.send("Shoti API > See documentation at https://shoti-api.vercel.app")
-})
+  res.send("Shoti API > See documentation at https://shoti-api.vercel.app");
+});
 
 app.post('/api/info', async (req, res) => {
   let { f: method } = req.body;
@@ -124,11 +123,11 @@ app.post('/api/info', async (req, res) => {
     let top = apikeyList.slice(0, 100);
     const fin = top.filter(item => item.requests !== 0);
     let final = [];
-    for(let i = 0;i < fin.length;i++) {
+    for (let i = 0; i < fin.length; i++) {
       final.push({
         username: fin[i].username,
         requests: fin[i].requests
-      })
+      });
     }
     res.type('json').send(JSON.stringify(final, null, 2) + '\n');
   } else if (method == 'stats') {
@@ -148,17 +147,17 @@ app.get('/api/generate-token', async (req, res) => {
   const { name, passkey } = req.query;
   const uniqueId = Date.now().toString(32) + Math.random().toString(32).substr(3);
   try {
-    if(passkey == process.env.PASSKEY) {
+    if (passkey == process.env.PASSKEY) {
       writeData('tokens', { name, token: uniqueId }).then((r) => {
         res.send(uniqueId);
-      })
+      });
     } else {
       res.send('error');
-    } 
-  } catch(error) { 
+    }
+  } catch (error) {
     res.send('error');
-  } 
-})
+  }
+});
 
 app.post('/api/createkey', async (req, res) => {
   try {
@@ -191,13 +190,13 @@ app.post('/api/create-video', async (req, res) => {
       return;
     }
     const tokens = await readData('tokens') || [];
-    const tk = tokens.find((r) => r.token === token) 
-    if(!tk) return res.send({ success: false, error: "Not authenticated" })
-    
+    const tk = tokens.find((r) => r.token === token);
+    if (!tk) return res.send({ success: false, error: "Not authenticated" });
+
     const uniqueId = [...Array(8)].map(() => Math.random().toString(36)[2] || Math.floor(Math.random() * 10)).join('');
     let result = await writeData('videos', {
-      url, 
-      id: uniqueId, 
+      url,
+      id: uniqueId,
       addedBy: tk.name,
       addedDate: new Date()
     });
@@ -207,7 +206,6 @@ app.post('/api/create-video', async (req, res) => {
     res.send({ success: false, error: err });
   }
 });
-
 
 app.post('/api/v1/add', async (req, res) => {
   try {
@@ -248,7 +246,7 @@ app.post('/api/v1/add', async (req, res) => {
 app.post('/api/v1/get', async (req, res) => {
   try {
     const { apikey } = req.body;
-    let apikeys =  await readData('apikeys');
+    let apikeys = await readData('apikeys');
 
     const apiKeyData = apikeys.find((key) => key.apikey === apikey);
 
@@ -268,10 +266,10 @@ app.post('/api/v1/get', async (req, res) => {
 
     const videoResponse = await generateVideo(userRank);
 
-    if (!videoResponse &&videoResponse.code !== 200) {
-    //  await deleteData('videos', videoResponse.errID).then(r => {
-    //    console.error('ErrorVidDel:', r);
-    //  })
+    if (!videoResponse && videoResponse.code !== 200) {
+      // await deleteData('videos', videoResponse.errID).then(r => {
+      //   console.error('ErrorVidDel:', r);
+      // })
       const retryResponse = await generateVideo(userRank);
       return res.status(retryResponse.code).json(retryResponse);
     }
@@ -287,31 +285,26 @@ app.get('/api/v1/request-f', async (req, res) => {
   let userRank = "ERR_METHOD_NOT_REQUIRE_KEY";
   const videoResponse = await generateVideo(userRank);
 
-    if (!videoResponse && videoResponse.code !== 200) {
-    //  await deleteData('videos', videoResponse.errID).then(r => {
+  if (!videoResponse && videoResponse.code !== 200) {
+    // await deleteData('videos', videoResponse.errID).then(r => {
     //   console.error('ErrorVidDel:', r);
-    //  })
-      const retryResponse = await generateVideo(userRank);
-      return res.type('json').send(JSON.stringify(retryResponse, null, 2) + '\n');
-    }
-    return res.type('json').send(JSON.stringify(videoResponse, null, 2) + '\n');
-}) 
+    // })
+    const retryResponse = await generateVideo(userRank);
+    return res.type('json').send(JSON.stringify(retryResponse, null, 2) + '\n');
+  }
+  return res.type('json').send(JSON.stringify(videoResponse, null, 2) + '\n');
+});
 
 async function generateVideo(userRank) {
-  let videos = cache.get('videos');
-
-  if (!videos) {
-    videos = await readData('videos');
-    cache.put('videos', videos);
-  }
+  const videos = await readData('videos');
 
   const randomIndex = getRandomInt(0, videos.length - 1);
-  
+
   const randomVideo = videos[randomIndex];
   const videoId = randomVideo.url;
   try {
     const videoInfo = await tikwm.getVideoInfo(videoId);
-    
+
     return {
       code: videoInfo.data ? 200 : 400,
       message: videoInfo.data ? 'success' : 'error',
@@ -320,7 +313,7 @@ async function generateVideo(userRank) {
         _shoti_rank: userRank,
         region: videoInfo.data?.region,
         url: sub ? sub : 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
-        cover: 'https://www.tikwm.com/video/cover/' + videoInfo.data?.id + '.webp', 
+        cover: 'https://www.tikwm.com/video/cover/' + videoInfo.data?.id + '.webp',
         title: videoInfo.data?.title,
         duration: videoInfo.data?.duration + 's',
         user: {

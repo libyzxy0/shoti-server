@@ -277,6 +277,9 @@ async function generateVideo(userRank) {
 
   try {
     const videoInfo = await tikwm.getVideoInfo(video.url);
+    if(!videoInfo.data.duration) {
+      return await generateVideo(userRank);
+    }
     return {
       code: 200,
       message: 'success',

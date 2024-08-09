@@ -2,54 +2,37 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const tikwm = require('./tikvid');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const client = new MongoClient(process.env.MONGO_URI);
 
 const databaseName = "Shoti";
-let videosCache = [];
-let apikeysCache = [];
-let tokensCache = [];
 
-// Initialize connection and cache
+// Initialize connection
 (async function() {
   try {
     await client.connect();
     console.log('Connected to MongoDB');
-    await refreshCache();
-    setInterval(refreshCache, 60000); // Refresh cache every 60 seconds
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
   }
 })();
-
-async function refreshCache() {
-  try {
-    videosCache = await readData('videos');
-    apikeysCache = await readData('apikeys');
-    tokensCache = await readData('tokens');
-    console.log('Cache refreshed');
-  } catch (error) {
-    console.error('Error refreshing cache:', error);
-  }
-}
 
 async function writeData(collection, data) {
   try {
     const database = client.db(databaseName);
     const col = database.collection(collection);
     const result = await col.insertOne(data);
-    await refreshCache(); // Refresh cache after writing data
     return result;
   } catch (error) {
     console.log(error);
   }
 }
 
-async function readData(collection) {
+async function readData(collection, filter = {}, options = {}) {
   try {
     const database = client.db(databaseName);
     const col = database.collection(collection);
-    const result = await col.find({}).toArray();
+    const result = await col.find(filter, options).toArray();
     return result;
   } catch (error) {
     console.log(error);
@@ -60,8 +43,7 @@ async function updateData(collection, dataID, newData) {
   try {
     const database = client.db(databaseName);
     const col = database.collection(collection);
-    const result = await col.findOneAndUpdate({ _id: dataID }, { $set: newData });
-    await refreshCache(); // Refresh cache after updating data
+    const result = await col.findOneAndUpdate({ _id: ObjectId(dataID) }, { $set: newData });
     return result;
   } catch (error) {
     console.log(error);
@@ -72,8 +54,7 @@ async function deleteData(collection, dataID) {
   try {
     const database = client.db(databaseName);
     const col = database.collection(collection);
-    const result = await col.deleteOne({ _id: dataID });
-    await refreshCache(); // Refresh cache after deleting data
+    const result = await col.deleteOne({ _id: ObjectId(dataID) });
     return result;
   } catch (error) {
     console.log(error);
@@ -81,22 +62,11 @@ async function deleteData(collection, dataID) {
 }
 
 function shuffle(array) {
-  const newArray = array.slice();
-  const useFisherYates = Math.random() < 0.5;
-
-  if (useFisherYates) {
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-  } else {
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * newArray.length);
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
-
-  return newArray;
+  return array;
 }
 
 function getRandomInt(min, max) {
@@ -107,30 +77,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/list', (req, res) => {
-  res.type('json').send(JSON.stringify(videosCache, null, 2) + '\n');
+app.get('/list', async (req, res) => {
+  const videos = await readData('videos', {}, { projection: { url: 1, id: 1, addedBy: 1, addedDate: 1 } });
+  res.type('json').send(JSON.stringify(videos, null, 2) + '\n');
 });
 
 app.get('/api', (req, res) => {
   res.send("Shoti API > See documentation at https://shoti-api.vercel.app");
 });
 
-app.post('/api/info', (req, res) => {
-  let { f: method } = req.body;
+app.post('/api/info', async (req, res) => {
+  const { f: method } = req.body;
 
-  if (method == 'leaderboard') {
-    apikeysCache.sort((a, b) => b.requests - a.requests);
-    let top = apikeysCache.slice(0, 100).filter(item => item.requests !== 0);
-    let final = top.map(item => ({
+  if (method === 'leaderboard') {
+    const apikeys = await readData('apikeys', {}, { projection: { username: 1, requests: 1 }, sort: { requests: -1 }, limit: 100 });
+    const final = apikeys.filter(item => item.requests !== 0).map(item => ({
       username: item.username,
       requests: item.requests
     }));
     res.type('json').send(JSON.stringify(final, null, 2) + '\n');
-  } else if (method == 'stats') {
-    const totalRequests = apikeysCache.reduce((acc, curr) => acc + curr.requests, 0);
+  } else if (method === 'stats') {
+    const [videosCount, usersCount, totalRequests] = await Promise.all([
+      readData('videos', {}, { count: true }),
+      readData('apikeys', {}, { count: true }),
+      readData('apikeys', {}, { projection: { requests: 1 } }).then(keys => keys.reduce((acc, curr) => acc + curr.requests, 0))
+    ]);
     res.send({
-      videos: videosCache.length,
-      users: apikeysCache.length,
+      videos: videosCount,
+      users: usersCount,
       requests: totalRequests
     });
   } else {
@@ -142,7 +116,7 @@ app.get('/api/generate-token', async (req, res) => {
   const { name, passkey } = req.query;
   const uniqueId = Date.now().toString(32) + Math.random().toString(32).substr(3);
   try {
-    if (passkey == process.env.PASSKEY) {
+    if (passkey === process.env.PASSKEY) {
       await writeData('tokens', { name, token: uniqueId });
       res.send(uniqueId);
     } else {
@@ -182,14 +156,14 @@ app.post('/api/create-video', async (req, res) => {
       res.send({ success: false });
       return;
     }
-    const tk = tokensCache.find(r => r.token === token);
-    if (!tk) return res.send({ success: false, error: "Not authenticated" });
+    const tk = await readData('tokens', { token }, { projection: { name: 1 } });
+    if (!tk.length) return res.send({ success: false, error: "Not authenticated" });
 
     const uniqueId = [...Array(8)].map(() => Math.random().toString(36)[2] || Math.floor(Math.random() * 10)).join('');
     await writeData('videos', {
       url,
       id: uniqueId,
-      addedBy: tk.name,
+      addedBy: tk[0].name,
       addedDate: new Date()
     });
 
@@ -204,14 +178,14 @@ app.post('/api/v1/add', async (req, res) => {
     const { url, apikey } = req.body;
     const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(3);
 
-    let video = videosCache.find(vid => vid.url === url);
-    if (!video) {
+    const video = await readData('videos', { url }, { projection: { url: 1 } });
+    if (!video.length) {
       res.send({ success: false });
       return;
     }
 
-    let apiKey = apikeysCache.find(key => key.apikey === apikey);
-    if (!apiKey) {
+    const apiKey = await readData('apikeys', { apikey }, { projection: { apikey: 1 } });
+    if (!apiKey.length) {
       res.send({ success: false });
       return;
     }
@@ -233,19 +207,21 @@ app.post('/api/v1/get', async (req, res) => {
   try {
     const { apikey } = req.body;
 
-    const apiKeyData = apikeysCache.find(key => key.apikey === apikey);
-    if (!apiKeyData) {
+    const apiKeyData = await readData('apikeys', { apikey }, { projection: { requests: 1 } });
+    if (!apiKeyData.length) {
       return res.status(401).json({
         code: 401,
         message: 'error-apikey-invalid',
       });
     }
 
-    await updateData('apikeys', apiKeyData._id, {
-      requests: apiKeyData.requests + 1,
+    await updateData('apikeys', apiKeyData[0]._id, {
+      requests: apiKeyData[0].requests + 1,
     });
 
-    const userRank = apikeysCache.findIndex(item => item.apikey === apiKeyData.apikey) + 1;
+    const userRank = (await readData('apikeys', {}, { sort: { requests: -1 }, projection: { apikey: 1 } }))
+      .findIndex(item => item.apikey === apiKeyData[0].apikey) + 1;
+    
     const videoResponse = await generateVideo(userRank);
 
     if (videoResponse.code !== 200) {
@@ -272,34 +248,48 @@ app.get('/api/v1/request-f', async (req, res) => {
 });
 
 async function generateVideo(userRank) {
-  const randomIndex = getRandomInt(0, videosCache.length - 1);
-  const video = videosCache[randomIndex];
-
   try {
-    const videoInfo = await tikwm.getVideoInfo(video.url);
-    if(!videoInfo.data.duration) {
-      return await generateVideo(userRank);
-    }
-    return {
-      code: 200,
-      message: 'success',
-      data: {
-        _shoti_rank: userRank,
-        region: videoInfo.data?.region,
-        url: 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
-        cover: videoInfo.data?.cover,
-        title: videoInfo.data?.title,
-        duration: `${videoInfo.data?.duration}s`,
-        user: {
-          username: videoInfo.data?.author?.unique_id,
-          nickname: videoInfo.data?.author?.nickname,
-          userID: videoInfo.data?.author?.id
+    // Retrieve videos from the database
+    const videos = await readData('videos', {}, { projection: { url: 1 }, limit: 3, sort: { addedDate: -1 } });
+    const shuffledVideos = shuffle(videos);
+    const randomVideo = shuffledVideos[getRandomInt(0, shuffledVideos.length - 1)];
+
+    // Fetch video information using tikwm
+    const videoInfo = await tikwm(randomVideo.url, userRank);
+
+    // If the videoInfo retrieval is successful, format the response as required
+    if (videoInfo?.code === 200 && videoInfo.data) {
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          _shoti_rank: userRank,
+          region: videoInfo.data?.region,
+          url: 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
+          cover: videoInfo.data?.cover,
+          title: videoInfo.data?.title,
+          duration: `${videoInfo.data?.duration}s`,
+          user: {
+            username: videoInfo.data?.author?.unique_id,
+            nickname: videoInfo.data?.author?.nickname,
+            userID: videoInfo.data?.author?.id
+          },
         },
-      },
+      };
+    } else {
+      // Handle the case where videoInfo is not retrieved successfully
+      return {
+        code: videoInfo?.code || 500,
+        message: videoInfo?.message || 'Failed to retrieve video information',
+      };
+    }
+  } catch (error) {
+    console.error('Error generating video:', error);
+    return {
+      code: 500,
+      message: 'Internal Server Error',
+      error: error.message,
     };
-  } catch (err) {
-    console.error('Error generating video:', err);
-    return await generateVideo(userRank);
   }
 }
 

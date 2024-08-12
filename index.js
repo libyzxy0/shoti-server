@@ -277,13 +277,16 @@ async function generateVideo(userRank) {
 
   try {
     const videoInfo = await tikwm.getVideoInfo(video.url);
+    if(!videoInfo.data.duration) {
+      return await generateVideo(userRank);
+    }
     return {
       code: 200,
       message: 'success',
       data: {
         _shoti_rank: userRank,
         region: videoInfo.data?.region,
-        url: videoInfo.data?.video_url,
+        url: 'https://www.tikwm.com/video/media/hdplay/' + videoInfo.data?.id + '.mp4',
         cover: videoInfo.data?.cover,
         title: videoInfo.data?.title,
         duration: `${videoInfo.data?.duration}s`,
